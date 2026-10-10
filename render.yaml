@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: short-order-showdown-scores
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DATA_DIR
+        value: /data
+      - key: RUST_LOG
+        value: info
+    # NOTE: free disks do not persist. Scores survive redeploys only with a
+    # persistent disk (paid) — see README. Without one, scores reset on deploy.

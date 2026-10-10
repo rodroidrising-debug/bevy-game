@@ -1,0 +1,15 @@
+[package]
+name = "cooking-game"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.84"
+
+[dependencies]
+bevy = { version = "0.16", features = ["mp3"] }
+ureq = { version = "2", default-features = false, features = ["tls"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 3
