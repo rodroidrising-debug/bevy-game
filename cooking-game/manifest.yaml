@@ -2,5 +2,5 @@ android:
   icon: "icon.png"
   manifest:
     package: "com.rodroidrising.showdown"
-    uses-permission:
+    uses_permission:
       - name: "android.permission.INTERNET"
