@@ -131,9 +131,12 @@ pub fn loading_fraction(asset_server: &AssetServer, assets: &GameAssets) -> f32 
     let mut total = 0usize;
     for h in assets.scenes.values() {
         total += 1;
+        // Failed counts as done: the game has colored-box fallbacks, so a
+        // missing/corrupt model (e.g. stripped mobile packaging) must never
+        // softlock the loading screen.
         if matches!(
             asset_server.get_load_state(h.id()),
-            Some(LoadState::Loaded)
+            Some(LoadState::Loaded) | Some(LoadState::Failed(_))
         ) {
             done += 1;
         }
@@ -152,7 +155,7 @@ pub fn loading_fraction(asset_server: &AssetServer, assets: &GameAssets) -> f32 
         total += 1;
         if matches!(
             asset_server.get_load_state(h.id()),
-            Some(LoadState::Loaded)
+            Some(LoadState::Loaded) | Some(LoadState::Failed(_))
         ) {
             done += 1;
         }

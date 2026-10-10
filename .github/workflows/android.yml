@@ -1,0 +1,52 @@
+name: Android build
+
+# Bevy 0.16 uses GameActivity by default (no feature changes needed).
+# Assets are EMBEDDED via --features embed-assets because xbuild does not
+# bundle an assets/ directory into the APK.
+# manifest.yaml (package id, icon, INTERNET permission) lives in cooking-game/.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cooking-game/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "cooking-game/**"
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cooking-game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Set up Java (gradle builds)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set up Android SDK/NDK
+        uses: android-actions/setup-android@v3
+      - name: Install NDK r26
+        run: sdkmanager --install "ndk;26.3.11579264" "platforms;android-34" "build-tools;34.0.0"
+      - name: Install xbuild
+        run: cargo install xbuild --version 0.2.0 --locked
+      - name: Check Android env
+        run: x doctor
+      - name: Build debug APK (assets embedded)
+        run: x build --platform android --arch arm64 --features embed-assets
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
+      - name: Locate APK
+        run: find target -name "*.apk" | head -n 5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: short-order-showdown-android
+          path: cooking-game/target/**/*.apk

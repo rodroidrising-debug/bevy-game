@@ -52,8 +52,14 @@ fn main() {
         save::save_full(&best, &economy, &settings);
     }
     let board = leaderboard::BoardConfig::from_settings(&settings);
-    App::new()
-        .add_plugins(DefaultPlugins)
+    let mut app = App::new();
+    // Android builds use --features embed-assets so the APK needs no
+    // separate asset packaging (xbuild does not bundle assets/).
+    #[cfg(feature = "embed-assets")]
+    let _ = app.add_plugins(bevy_embedded_assets::EmbeddedAssetPlugin {
+        mode: bevy_embedded_assets::PluginMode::ReplaceDefault,
+    });
+    app.add_plugins(DefaultPlugins)
         .init_state::<GameState>()
         .enable_state_scoped_entities::<GameState>()
         .insert_resource(SelectedLevel(0))

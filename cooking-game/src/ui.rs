@@ -1200,7 +1200,7 @@ pub fn shop_buttons(
                 *tab = nt;
                 click(&mut commands, &assets, &muted);
                 for r in roots.iter() {
-                    commands.entity(r).despawn_recursive();
+                    commands.entity(r).despawn();
                 }
                 build_shop(&mut commands, &asset_server, &economy, nt);
             }
