@@ -14,3 +14,19 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 sha2 = "0.10"
 rand = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
+overflow-checks = false
+
+[profile.release.package."*"] 
+opt-level = 3
+codegen-units = 1
+strip = true
+debug = false
+overflow-checks = false
