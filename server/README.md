@@ -15,7 +15,10 @@ curl -X POST localhost:3000/api/scores \
 curl 'localhost:3000/api/scores?level=0&limit=5'
 ```
 
-## Deploy on Render (you already have the CLI + login)
+## Deploy on Render (LIVE)
+
+Running at **https://short-order-showdown-scores.onrender.com**
+(`render.yaml` blueprint + `server/Dockerfile`, free plan).
 
 ```sh
 # from the repo root:

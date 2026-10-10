@@ -9,7 +9,7 @@ use bevy::prelude::*;
 
 use crate::world::{RunScore, SelectedLevel};
 
-pub const DEFAULT_URL: &str = "http://127.0.0.1:3000";
+pub const DEFAULT_URL: &str = "https://short-order-showdown-scores.onrender.com";
 
 #[derive(Resource, Debug, Clone)]
 pub struct BoardConfig {
