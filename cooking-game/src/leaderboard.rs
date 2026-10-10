@@ -197,6 +197,12 @@ fn number_after(s: &str, key: &str) -> Option<u32> {
     num_after(s, key)
 }
 
+/// Byte-substring search (test stub helper).
+#[cfg(test)]
+fn find_sub(hay: &[u8], needle: &[u8]) -> Option<usize> {
+    hay.windows(needle.len()).position(|w| w == needle)
+}
+
 /// Render stored top entries for the results screen.
 pub fn render_top(entries: &[(String, u32, u8)]) -> String {
     let mut s = "Online top:\n".to_string();
@@ -209,7 +215,7 @@ pub fn render_top(entries: &[(String, u32, u8)]) -> String {
 // --- worker ops (blocking, run in threads) ---
 
 /// Login; on unknown player, auto-register with the device secret.
-fn ensure_token(cfg: &BoardConfig) -> Option<String> {
+pub(crate) fn ensure_token(cfg: &BoardConfig) -> Option<String> {
     let ag = agent();
     let login_body = format!(
         "{{\"player\":\"{}\",\"password\":\"{}\"}}",
@@ -238,7 +244,7 @@ fn ensure_token(cfg: &BoardConfig) -> Option<String> {
     None
 }
 
-fn authed_post(url: &str, token: &str, body: &str) -> Option<String> {
+pub(crate) fn authed_post(url: &str, token: &str, body: &str) -> Option<String> {
     let resp = agent()
         .post(url)
         .set("Content-Type", "application/json")
@@ -252,7 +258,7 @@ fn authed_post(url: &str, token: &str, body: &str) -> Option<String> {
     }
 }
 
-fn authed_get(url: &str, token: &str) -> Option<String> {
+pub(crate) fn authed_get(url: &str, token: &str) -> Option<String> {
     let resp = agent()
         .get(url)
         .set("Authorization", &format!("Bearer {}", token))
@@ -504,5 +510,96 @@ mod tests {
     fn scores_url_trims_slash() {
         let c = BoardConfig { base_url: "https://x.example/".into(), player: "P".into(), secret: "s".into() };
         assert_eq!(c.scores_url(), "https://x.example/api/scores");
+    }
+
+    /// Full client↔server round-trip against a real local HTTP stub, using the
+    /// exact functions the game runs (auth → authed submit → snapshot parse).
+    #[test]
+    fn live_protocol_roundtrip_against_stub() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().take(3) {
+                let mut stream = stream.unwrap();
+                // read headers first, then exactly Content-Length body bytes
+                let mut raw = Vec::new();
+                let mut buf = [0u8; 1024];
+                let header_end = loop {
+                    use std::io::Read as _;
+                    let n = stream.read(&mut buf).unwrap_or(0);
+                    if n == 0 {
+                        break None;
+                    }
+                    raw.extend_from_slice(&buf[..n]);
+                    if let Some(i) = find_sub(&raw, b"\r\n\r\n") {
+                        break Some(i + 4);
+                    }
+                    if raw.len() > 16384 {
+                        break None;
+                    }
+                };
+                let Some(hend) = header_end else {
+                    continue;
+                };
+                let head = String::from_utf8_lossy(&raw[..hend]).to_string();
+                let want: usize = head
+                    .lines()
+                    .find(|l| l.to_lowercase().starts_with("content-length:"))
+                    .and_then(|l| l.split(':').nth(1))
+                    .and_then(|v| v.trim().parse().ok())
+                    .unwrap_or(0);
+                while raw.len() < hend + want {
+                    use std::io::Read as _;
+                    let n = stream.read(&mut buf).unwrap_or(0);
+                    if n == 0 {
+                        break;
+                    }
+                    raw.extend_from_slice(&buf[..n]);
+                }
+                let req = String::from_utf8_lossy(&raw).to_string();
+                let first = req.lines().next().unwrap_or("").to_string();
+                let body = if first.starts_with("POST /api/auth") {
+                    r#"{"token":"STUB-TOKEN","player":"P","coins":25,"gems":0,"perfects":0,"gear":[false,false,false,false,false,false],"meals":[0,0,0,0,0,0,0,0],"diner":[0,0,0],"best_scores":[0,0,0],"best_stars":[0,0,0]}"#.to_string()
+                } else if first.starts_with("POST /api/scores") {
+                    assert!(req.contains("Authorization: Bearer STUB-TOKEN"), "missing/wrong bearer: {}", first);
+                    assert!(req.contains("\"grade\":\"S\""), "grade not forwarded: {}", req);
+                    r#"{"rank":2,"total":9,"coins_earned":15,"gem_earned":false,"coins":40,"gems":0,"perfects":1,"gear":[false,false,false,false,false,false],"meals":[0,0,0,0,0,0,0,0],"diner":[0,0,0],"best_scores":[130,0,0],"best_stars":[1,0,0]}"#.to_string()
+                } else if first.starts_with("GET /api/scores") {
+                    r#"[{"player":"Amy","level":0,"score":450,"stars":3,"at":"t"}]"#.to_string()
+                } else {
+                    panic!("unexpected request: {}", first);
+                };
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                let _ = stream.write_all(resp.as_bytes());
+            }
+        });
+
+        let cfg = BoardConfig {
+            base_url: format!("http://127.0.0.1:{}", port),
+            player: "StubChef".into(),
+            secret: "stub-secret-1234".into(),
+        };
+        // 1. login (unknown player would auto-register; stub accepts directly)
+        let token = ensure_token(&cfg).expect("login against stub");
+        assert_eq!(token, "STUB-TOKEN");
+        // 2. authed submit with grade + snapshot parse (exact game path)
+        let body = r#"{"level":0,"score":130,"stars":1,"grade":"S","tip":0}"#;
+        let resp = authed_post(&cfg.scores_url(), &token, body).expect("submit against stub");
+        assert_eq!(num_after(&resp, "\"rank\":"), Some(2));
+        let snap = parse_snap(&resp).expect("snapshot parses");
+        assert_eq!((snap.coins, snap.gems, snap.perfects), (40, 0, 1));
+        assert_eq!(snap.best_scores[0], 130);
+        // 3. top list fetch + parse (exact game path)
+        let top_body = authed_get(&format!("{}?level=0&limit=5", cfg.scores_url()), &token)
+            .expect("top fetch against stub");
+        let top = parse_top(&top_body);
+        assert_eq!(top, vec![("Amy".to_string(), 450, 3)]);
     }
 }

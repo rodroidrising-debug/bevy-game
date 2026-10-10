@@ -380,7 +380,7 @@ pub fn setup_progress(
 #[allow(clippy::type_complexity)]
 pub fn sync_progress_bars(
     mut commands: Commands,
-    stations: Query<(Entity, &Transform, &Station)>,
+    stations: Query<(Entity, &Transform, &Station), (Without<ProgressBar>, Without<ProgressFill>)>,
     mut bars: Query<(
         Entity,
         &ProgressBar,

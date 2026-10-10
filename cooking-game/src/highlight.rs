@@ -59,8 +59,8 @@ pub fn nearest_within(player: Vec3, points: &[(Vec3, bool)]) -> Option<usize> {
 }
 
 pub fn highlight_tick(
-    player_q: Query<&Transform, With<Player>>,
-    stations: Query<(&Transform, &Station)>,
+    player_q: Query<&Transform, (With<Player>, Without<HighlightRing>)>,
+    stations: Query<(&Transform, &Station), Without<HighlightRing>>,
     mut ring_q: Query<(Entity, &mut Transform, &mut MeshMaterial3d<StandardMaterial>), With<HighlightRing>>,
     assets: Option<Res<HighlightAssets>>,
     mut commands: Commands,

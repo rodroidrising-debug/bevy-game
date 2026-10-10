@@ -902,7 +902,7 @@ pub fn update_settings_text(
     settings: Res<crate::settings::Settings>,
     listening: Res<Listening>,
     mut vol_q: Query<&mut Text, (With<SettingsVolText>, Without<BindLabel>, Without<SettingsMsgText>)>,
-    mut binds: Query<(&mut Text, &BindLabel), Without<SettingsVolText>>,
+    mut binds: Query<(&mut Text, &BindLabel), (Without<SettingsVolText>, Without<SettingsMsgText>)>,
     mut msg_q: Query<&mut Text, (With<SettingsMsgText>, Without<SettingsVolText>, Without<BindLabel>)>,
 ) {
     if let Ok(mut t) = vol_q.single_mut() {
@@ -1385,12 +1385,12 @@ pub fn update_hud(
     selected: Res<SelectedLevel>,
     muted: Res<Muted>,
     economy: Res<crate::economy::Economy>,
-    mut timer_q: Query<&mut Text, With<HudTimer>>,
-    mut score_q: Query<&mut Text, (With<HudScore>, Without<HudTimer>)>,
-    mut orders_q: Query<&mut Text, (With<HudOrders>, Without<HudTimer>, Without<HudScore>)>,
-    mut carried_q: Query<&mut Text, (With<HudCarried>, Without<HudTimer>, Without<HudScore>, Without<HudOrders>)>,
-    mut prompt_q: Query<&mut Text, With<HudPrompt>>,
-    mut hint_q: Query<&mut Text, With<HudHint>>,
+    mut timer_q: Query<&mut Text, (With<HudTimer>, Without<HudScore>, Without<HudOrders>, Without<HudCarried>, Without<HudPrompt>, Without<HudHint>)>,
+    mut score_q: Query<&mut Text, (With<HudScore>, Without<HudTimer>, Without<HudOrders>, Without<HudCarried>, Without<HudPrompt>, Without<HudHint>)>,
+    mut orders_q: Query<&mut Text, (With<HudOrders>, Without<HudTimer>, Without<HudScore>, Without<HudCarried>, Without<HudPrompt>, Without<HudHint>)>,
+    mut carried_q: Query<&mut Text, (With<HudCarried>, Without<HudTimer>, Without<HudScore>, Without<HudOrders>, Without<HudPrompt>, Without<HudHint>)>,
+    mut prompt_q: Query<&mut Text, (With<HudPrompt>, Without<HudTimer>, Without<HudScore>, Without<HudOrders>, Without<HudCarried>, Without<HudHint>)>,
+    mut hint_q: Query<&mut Text, (With<HudHint>, Without<HudTimer>, Without<HudScore>, Without<HudOrders>, Without<HudCarried>, Without<HudPrompt>)>,
 ) {
     let cfg = &LEVELS[selected.0.min(LEVELS.len() - 1)];
     if let Ok(mut t) = timer_q.single_mut() {
