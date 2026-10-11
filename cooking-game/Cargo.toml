@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.84"
 
 [dependencies]
-bevy = { version = "0.16", features = ["mp3"] }
+bevy = { version = "0.16", features = ["mp3", "wav"] }
 ureq = { version = "2", default-features = false, features = ["tls"] }
 bevy_embedded_assets = { version = "=0.13.0", optional = true }
 

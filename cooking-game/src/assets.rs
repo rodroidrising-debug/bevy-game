@@ -1,14 +1,12 @@
 //! Asset preloading: KayKit glTF models + kitchen sounds.
 
-use bevy::asset::{LoadedFolder, LoadState};
+use bevy::asset::LoadState;
 use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Resource)]
 pub struct GameAssets {
-    pub models_folder: Handle<LoadedFolder>,
-    pub sounds_folder: Handle<LoadedFolder>,
     /// Preloaded scene handles by file name, e.g. "plate.gltf".
     pub scenes: HashMap<String, Handle<Scene>>,
     // Sounds (wav, shipped in the zip).
@@ -97,9 +95,9 @@ pub const MODEL_FILES: &[&str] = &[
 ];
 
 pub fn start_loading(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let models_folder: Handle<LoadedFolder> = asset_server.load_folder("models");
-    let sounds_folder: Handle<LoadedFolder> = asset_server.load_folder("sounds");
-
+    // NOTE: no load_folder() here on purpose — folders contain .bin companions
+    // with no asset loader, which only spams errors. Every needed file has a
+    // typed handle below, and those are what the loading screen gates on.
     let mut scenes = HashMap::new();
     for f in MODEL_FILES {
         let path = format!("models/{f}");
@@ -109,8 +107,6 @@ pub fn start_loading(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 
     commands.insert_resource(GameAssets {
-        models_folder,
-        sounds_folder,
         scenes,
         snd_chop: asset_server.load("sounds/chop-vegetable-fast.wav"),
         snd_sizzle: asset_server.load("sounds/pan-sizzle-loop.wav"),

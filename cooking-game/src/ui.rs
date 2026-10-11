@@ -226,11 +226,13 @@ pub fn setup_loading(mut commands: Commands) {
 }
 
 pub fn update_loading(
+    time: Res<Time>,
     asset_server: Res<AssetServer>,
     assets: Option<Res<GameAssets>>,
     mut fill: Query<&mut Node, With<LoadingBarFill>>,
     mut txt: Query<&mut Text, With<LoadingText>>,
     mut next: ResMut<NextState<GameState>>,
+    mut waited: Local<f32>,
 ) {
     let Some(a) = assets else { return };
     let f = loading_fraction(&asset_server, &a);
@@ -241,6 +243,14 @@ pub fn update_loading(
         t.0 = format!("{}% - models + 6 kitchen sounds", (f * 100.0) as i32);
     }
     if all_critical_loaded(&asset_server, &a) {
+        next.set(GameState::MainMenu);
+        return;
+    }
+    // Failsafe: a missing decoder or file must never trap the player here.
+    // (This is what bricked Windows builds before the `wav` feature existed.)
+    *waited += time.delta_secs();
+    if *waited > 25.0 {
+        eprintln!("[loading] timeout after 25s at {:.0}% — continuing with fallbacks", f * 100.0);
         next.set(GameState::MainMenu);
     }
 }
