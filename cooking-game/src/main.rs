@@ -108,20 +108,20 @@ fn main() {
         .add_systems(OnEnter(GameState::Loading), (start_loading, ui::setup_loading))
         .add_systems(Update, ui::update_loading.run_if(in_state(GameState::Loading)))
         // ---- Main menu ----
-        .add_systems(OnEnter(GameState::MainMenu), (despawn_kitchen, leaderboard::menu_sync, ui::setup_menu))
+        .add_systems(OnEnter(GameState::MainMenu), (despawn_kitchen, leaderboard::menu_sync, ui::setup_menu, ui::title_menu))
         .add_systems(Update, ui::menu_buttons.run_if(in_state(GameState::MainMenu)))
         .add_systems(Update, leaderboard::net_poll)
         // ---- Restaurant select ----
-        .add_systems(OnEnter(GameState::RestaurantSelect), (despawn_kitchen, ui::setup_select))
+        .add_systems(OnEnter(GameState::RestaurantSelect), (despawn_kitchen, ui::setup_select, ui::title_select))
         .add_systems(Update, ui::select_buttons.run_if(in_state(GameState::RestaurantSelect)))
         .add_systems(Update, ui::update_chef_row.run_if(in_state(GameState::RestaurantSelect)))
         // ---- Settings ----
-        .add_systems(OnEnter(GameState::Settings), ui::setup_settings)
+        .add_systems(OnEnter(GameState::Settings), (ui::setup_settings, ui::title_settings))
         .add_systems(Update, ui::settings_buttons.run_if(in_state(GameState::Settings)))
         .add_systems(Update, ui::capture_rebind.run_if(in_state(GameState::Settings)))
         .add_systems(Update, ui::update_settings_text.run_if(in_state(GameState::Settings)))
         // ---- Level brief (new-run entry cleans old kitchen) ----
-        .add_systems(OnEnter(GameState::LevelBrief), (despawn_kitchen, ui::setup_brief))
+        .add_systems(OnEnter(GameState::LevelBrief), (despawn_kitchen, ui::setup_brief, ui::title_brief))
         .add_systems(Update, ui::brief_buttons.run_if(in_state(GameState::LevelBrief)))
         // ---- Playing (spawn guarded: resume-from-pause skips) ----
         .add_systems(
@@ -132,6 +132,7 @@ fn main() {
                 spawn_kitchen,
                 ambience::spawn_diners_system,
                 ui::setup_hud,
+                ui::title_playing,
             ),
         )
         .add_systems(Update, player_movement.run_if(in_state(GameState::Playing)))
@@ -166,7 +167,7 @@ fn main() {
                 .run_if(in_state(GameState::Playing)),
         )
         // ---- Paused (overlay: kitchen + HUD preserved) ----
-        .add_systems(OnEnter(GameState::Paused), ui::setup_paused)
+        .add_systems(OnEnter(GameState::Paused), (ui::setup_paused, ui::title_paused))
         .add_systems(
             Update,
             (resume_input, ui::paused_buttons).run_if(in_state(GameState::Paused)),
@@ -174,20 +175,20 @@ fn main() {
         // ---- Results (clean kitchen on enter) ----
         .add_systems(
             OnEnter(GameState::LevelComplete),
-            (despawn_kitchen, leaderboard::board_refresh, ui::setup_complete),
+            (despawn_kitchen, leaderboard::board_refresh, ui::setup_complete, ui::title_results),
         )
         .add_systems(Update, ui::update_top_board.run_if(in_state(GameState::LevelComplete)))
         .add_systems(
             Update,
             ui::complete_buttons.run_if(in_state(GameState::LevelComplete)),
         )
-        .add_systems(OnEnter(GameState::GameComplete), (despawn_kitchen, ui::setup_gamecomplete))
+        .add_systems(OnEnter(GameState::GameComplete), (despawn_kitchen, ui::setup_gamecomplete, ui::title_results))
         .add_systems(
             Update,
             ui::gamecomplete_buttons.run_if(in_state(GameState::GameComplete)),
         )
         // ---- Shop ----
-        .add_systems(OnEnter(GameState::Shop), ui::setup_shop)
+        .add_systems(OnEnter(GameState::Shop), (ui::setup_shop, ui::title_shop))
         .add_systems(Update, ui::shop_buttons.run_if(in_state(GameState::Shop)))
         .add_systems(Update, ui::update_shop_text.run_if(in_state(GameState::Shop)))
         .run();

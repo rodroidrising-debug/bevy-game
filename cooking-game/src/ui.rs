@@ -149,6 +149,42 @@ fn title_text(s: &str, size: f32, color: Color) -> (Text, TextFont, TextColor) {
     )
 }
 
+/// Window-title readout: makes the current state visible in screenshots and
+/// the taskbar (remote diagnosis without log files).
+pub fn set_window_title(windows: &mut Query<&mut Window>, title: &str) {
+    if let Ok(mut w) = windows.single_mut() {
+        w.title = title.to_string();
+    }
+}
+
+pub fn title_loading(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Loading");
+}
+pub fn title_menu(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Menu");
+}
+pub fn title_select(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Restaurants");
+}
+pub fn title_brief(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Briefing");
+}
+pub fn title_playing(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - PLAYING");
+}
+pub fn title_paused(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Paused");
+}
+pub fn title_results(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Results");
+}
+pub fn title_shop(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Shop");
+}
+pub fn title_settings(mut windows: Query<&mut Window>) {
+    set_window_title(&mut windows, "Short-Order Showdown - Settings");
+}
+
 /// Full-screen textured backdrop (first child = painted behind content).
 /// `dim` multiplies the image so text stays readable.
 fn backdrop(asset_server: &AssetServer, file: &str, dim: f32) -> impl Bundle {
@@ -233,6 +269,8 @@ pub fn update_loading(
     mut txt: Query<&mut Text, With<LoadingText>>,
     mut next: ResMut<NextState<GameState>>,
     mut waited: Local<f32>,
+    mut last_pct: Local<i32>,
+    mut windows: Query<&mut Window>,
 ) {
     let Some(a) = assets else { return };
     let f = loading_fraction(&asset_server, &a);
@@ -241,6 +279,12 @@ pub fn update_loading(
     }
     if let Ok(mut t) = txt.single_mut() {
         t.0 = format!("{}% - models + 6 kitchen sounds", (f * 100.0) as i32);
+    }
+    // Keep the title bar in sync so a screenshot alone shows progress.
+    let pct = (f * 100.0) as i32;
+    if pct != *last_pct {
+        *last_pct = pct;
+        set_window_title(&mut windows, &format!("Short-Order Showdown - Loading {}%", pct));
     }
     if all_critical_loaded(&asset_server, &a) {
         next.set(GameState::MainMenu);
