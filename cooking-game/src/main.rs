@@ -105,7 +105,13 @@ fn main() {
                 .run_if(in_state(GameState::Playing)),
         )
         // ---- Loading ----
-        .add_systems(OnEnter(GameState::Loading), (start_loading, ui::setup_loading))
+        // NOTE: the camera must exist from the very first frame — in Bevy 0.16
+        // the UI sub-graph runs per camera view, so camera-less states render
+        // a blank window. setup_lights_camera is idempotent (Playing reuses it).
+        .add_systems(
+            OnEnter(GameState::Loading),
+            (setup_lights_camera, start_loading, ui::setup_loading, ui::title_loading),
+        )
         .add_systems(Update, ui::update_loading.run_if(in_state(GameState::Loading)))
         // ---- Main menu ----
         .add_systems(OnEnter(GameState::MainMenu), (despawn_kitchen, leaderboard::menu_sync, ui::setup_menu, ui::title_menu))
